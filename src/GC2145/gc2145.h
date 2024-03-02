@@ -25,14 +25,18 @@ class GC2145: public ImageSensor {
    private:
         int setWindow(uint16_t reg, uint16_t x, uint16_t y, uint16_t w, uint16_t h);
         Stream *_debug;
-        arduino::MbedI2C *_i2c;
-        int regWrite(uint8_t dev_addr, uint16_t reg_addr, uint8_t reg_data, bool wide_addr = false);
-        uint8_t regRead(uint8_t dev_addr, uint16_t reg_addr, bool wide_addr = false);
+        WIRECLASS *_i2c;
+//        int regWrite(uint8_t dev_addr, uint16_t reg_addr, uint8_t reg_data, bool wide_addr = false);
+//        uint8_t regRead(uint8_t dev_addr, uint16_t reg_addr, bool wide_addr = false);
         bool vertical_flip_state = false;
         bool horizontal_mirror_state = false;
 
+   public: // temporary to experiment
+        int regWrite(uint8_t dev_addr, uint16_t reg_addr, uint8_t reg_data, bool wide_addr = false);
+        uint8_t regRead(uint8_t dev_addr, uint16_t reg_addr, bool wide_addr = false);
+
    public:
-        GC2145(arduino::MbedI2C &i2c = CameraWire);
+        GC2145(WIRECLASS &i2c = CameraWire);
         int init();
         int reset();
         int getID() { return GC2145_I2C_ADDR; };
@@ -49,6 +53,7 @@ class GC2145: public ImageSensor {
         int motionDetected() { return 0; };
         int setVerticalFlip(bool flip_enable);
         int setHorizontalMirror(bool mirror_enable);
+        uint8_t printRegs();
         void debug(Stream &stream);
 };
 

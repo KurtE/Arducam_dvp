@@ -19,7 +19,10 @@
 #include "Arduino.h"
 #include "arducam_dvp.h"
 #include "Wire.h"
+#if defined(ARDUINO_ARCH_MBED)
 #include "stm32h7xx_hal_dcmi.h"
+#endif
+
 
 // Workaround for the broken UNUSED macro.
 #undef UNUSED
@@ -71,6 +74,7 @@ arduino::MbedI2C CameraWire(I2C_SDA1, I2C_SCL1);
 
 #endif
 
+#if defined(ARDUINO_ARCH_MBED)
 #define DCMI_IRQ_PRI                NVIC_EncodePriority(NVIC_PRIORITYGROUP_4, 2, 0)
 
 #define DCMI_DMA_CLK_ENABLE()       __HAL_RCC_DMA2_CLK_ENABLE()
@@ -124,6 +128,8 @@ static TIM_HandleTypeDef  htim  = {0};
 static DMA_HandleTypeDef  hdma  = {0};
 static DCMI_HandleTypeDef hdcmi = {0};
 
+#endif
+
 /// Table to store the amount of bytes per pixel for each pixel format
 const uint32_t pixtab[CAMERA_PMAX] = {
     1, // CAMERA_GRAYSCALE
@@ -136,10 +142,12 @@ const uint32_t restab[CAMERA_RMAX][2] = {
     {320,   240 },
     {320,   320 },
     {640,   480 },
+    {0,     0   }, // 4 is missing from enum.
     {800,   600 },
     {1600,  1200},
 };
 
+#if defined(ARDUINO_ARCH_MBED)
 extern "C" {
 
 void HAL_TIM_PWM_MspInit(TIM_HandleTypeDef *htim)
@@ -346,12 +354,13 @@ inline void pixelDataAssemble(uint8_t *framebuffer,uint32_t framesize)
 }
 
 } // extern "C"
+#endif // defined(ARDUINO_ARCH_MBED)
 
 FrameBuffer::FrameBuffer(int32_t x, int32_t y, int32_t bpp) : 
     _fb_size(x*y*bpp),
     _isAllocated(true)
 {
-    uint8_t *buffer = (uint8_t *)malloc(x*y*bpp);
+    uint8_t *buffer = (uint8_t *)malloc(x*y*bpp + 32);
     _fb = (uint8_t *)ALIGN_PTR((uintptr_t)buffer, 32);
 }
 
@@ -411,10 +420,10 @@ int Camera::reset()
     // Reset sensor.
     #if defined(DCMI_RESET_PIN)
     digitalWrite(DCMI_RESET_PIN, LOW);
-    HAL_Delay(10);
+    DELAYMS(10);
 
     digitalWrite(DCMI_RESET_PIN, HIGH);
-    HAL_Delay(20);
+    DELAYMS(20);
     #endif
     return 0;
 }
@@ -445,7 +454,7 @@ bool Camera::begin(int32_t resolution, int32_t pixformat, int32_t framerate)
 
     // Configure the initial sensor clock.
     camera_extclk_config(DCMI_TIM_FREQUENCY);
-    HAL_Delay(10);
+    DELAYMS(10);
 
     // Reset the image sensor.
     reset();
@@ -453,7 +462,7 @@ bool Camera::begin(int32_t resolution, int32_t pixformat, int32_t framerate)
     if (sensor->getClockFrequency() != DCMI_TIM_FREQUENCY) {
         // Reconfigure the sensor clock frequency.
         camera_extclk_config(sensor->getClockFrequency());
-        HAL_Delay(10);
+        DELAYMS(10);
     }
 
     if (this->sensor->init() != 0) {
@@ -542,6 +551,7 @@ int Camera::setResolution(int32_t resolution)
     }
     HAL_DCMI_ConfigCROP(&hdcmi, 0, 0, bpl - 1, restab[resolution][1] - 1);
 
+    original_resolution = resolution;
     if (this->sensor->setResolution(resolution) == 0) {
         this->resolution = resolution;
         return 0;
@@ -704,4 +714,111 @@ void Camera::debug(Stream &stream)
 {
   _debug = &stream;
   this->sensor->debug(stream);
+}
+
+
+uint8_t Camera::printRegs()
+{
+  return this->sensor->printRegs();
+}
+
+
+//-------------------------------------------------------
+// Missing functions
+//-------------------------------------------------------
+int Camera::setVerticalFlip(bool flip_enable) {
+    return sensor->setVerticalFlip(flip_enable);
+}
+
+int Camera::setHorizontalMirror(bool mirror_enable) {
+    return sensor->setHorizontalMirror(mirror_enable);
+}
+
+uint32_t Camera::getResolutionWidth() {
+    return (restab[this->original_resolution][0]);
+}
+
+uint32_t Camera::getResolutionHeight() {
+    return (restab[this->original_resolution][1]);
+}
+
+int Camera::zoomTo(int32_t zoom_resolution, uint32_t zoom_x, uint32_t zoom_y) {
+    // Check for zoom resolutions that would cause out-of-bounds indexing of restab
+    if ((zoom_resolution < 0) || (zoom_resolution >= CAMERA_RMAX))
+    {
+        return -1;
+    }
+    // Check if the zoom window goes outside the frame on the x axis
+    // Notice that this form prevents uint32_t wraparound, so don't change it
+    if (zoom_x >= (restab[this->original_resolution][0]) - (restab[zoom_resolution][0]))
+    {
+         return -1;
+    }
+    // Check if the zoom window goes outside the frame on the y axis
+    // Notice that this form prevents uint32_t wraparound, so don't change it
+    if (zoom_y >= (restab[this->original_resolution][1]) - (restab[zoom_resolution][1]))
+    {
+        return -1;
+    }
+    return setResolutionWithZoom(this->original_resolution, zoom_resolution, zoom_x, zoom_y);
+
+}
+
+int Camera::zoomToCenter(int32_t zoom_resolution) {
+    if ((zoom_resolution < 0) || (zoom_resolution >= CAMERA_RMAX))
+    {
+        return -1;
+    }
+    uint32_t zoom_x = (restab[this->original_resolution][0] - restab[zoom_resolution][0]) / 2;
+    uint32_t zoom_y = (restab[this->original_resolution][1] - restab[zoom_resolution][1]) / 2;
+    return setResolutionWithZoom(this->original_resolution, zoom_resolution, zoom_x, zoom_y);
+}
+
+int Camera::setResolutionWithZoom(int32_t resolution, int32_t zoom_resolution, int32_t zoom_x, int32_t zoom_y)
+{
+    if (this->sensor == NULL || resolution >= CAMERA_RMAX
+            || pixformat >= CAMERA_PMAX || pixformat == -1) {
+        return -1;
+    }
+
+    // resolution = the full resolution to set the camera to
+    // zoom_resolution = the resolution to crop to when zooming (set equal to resolution for no zoom)
+    // final_resolution = the resolution to crop to (depends on zoom or not)
+    int32_t final_resolution;
+    // Check if zooming is asked for
+    if (resolution != zoom_resolution)
+    {
+        // Can't zoom into a larger window than the original
+        if (zoom_resolution > resolution)
+        {
+            return -1;
+        }
+        final_resolution = zoom_resolution;
+    }
+    else
+    {
+        final_resolution = resolution;
+    }
+
+    /*
+     * @param  X0    DCMI window X offset
+     * @param  Y0    DCMI window Y offset
+     * @param  XSize DCMI Pixel per line
+     * @param  YSize DCMI Line number
+     */
+    HAL_DCMI_EnableCROP(&hdcmi);
+    uint32_t bpl = restab[final_resolution][0];
+    if (pixformat == CAMERA_RGB565 ||
+       (pixformat == CAMERA_GRAYSCALE && !this->sensor->getMono())) {
+        // If the pixel format is Grayscale and sensor is Not monochrome,
+        // the actual pixel format will be YUV (i.e 2 bytes per pixel).
+        bpl *= 2;
+    }
+    HAL_DCMI_ConfigCROP(&hdcmi, 0, 0, bpl - 1, restab[final_resolution][1] - 1);
+
+    if (this->sensor->setResolutionWithZoom(resolution, zoom_resolution, zoom_x, zoom_y) == 0) {
+        this->resolution = final_resolution;
+        return 0;
+    }
+    return -1;
 }

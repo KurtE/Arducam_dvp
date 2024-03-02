@@ -129,6 +129,101 @@
 #define HIMAX_LINE_LEN_PCK_FULL     0x178
 #define HIMAX_FRAME_LENGTH_FULL     0x109
 
+
+#define HM01B0_DEBUG
+#ifdef HM01B0_DEBUG
+typedef struct {
+  const char *reg_name;
+  uint16_t reg;
+} HIMAX_REG_TO_NAME_t;
+
+static const HIMAX_REG_TO_NAME_t ov_reg_name_table[] =
+{
+    {"MODEL_ID_H", 0x0000},
+    {"MODEL_ID_L", 0x0001},
+    {"FRAME_COUNT", 0x0005},
+    {"PIXEL_ORDER", 0x0006},
+    {"MODE_SELECT", 0x0100},
+    {"IMG_ORIENTATION", 0x0101},
+    {"SW_RESET", 0x0103},
+    {"GRP_PARAM_HOLD", 0x0104},
+    {"INTEGRATION_H", 0x0202},
+    {"INTEGRATION_L", 0x0203},
+    {"ANALOG_GAIN", 0x0205},
+    {"DIGITAL_GAIN_H", 0x020E},
+    {"DIGITAL_GAIN_L", 0x020F},
+    {"FRAME_LEN_LINES_H", 0x0340},
+    {"FRAME_LEN_LINES_L", 0x0341},
+    {"LINE_LEN_PCK_H", 0x0342},
+    {"LINE_LEN_PCK_L", 0x0343},
+    {"READOUT_X", 0x0383},
+    {"READOUT_Y", 0x0387},
+    {"BINNING_MODE", 0x0390},
+    {"TEST_PATTERN_MODE", 0x0601},
+    {"BLC_CFG", 0x1000},
+    {"BLC_TGT", 0x1003},
+    {"BLI_EN", 0x1006},
+    {"BLC2_TGT", 0x1007},
+    {"DPC_CTRL", 0x1008},
+    {"SINGLE_THR_HOT", 0x100B},
+    {"SINGLE_THR_COLD", 0x100C},
+    {"VSYNC_HSYNC_PIXEL_SHIFT_EN", 0x1012},
+    {"AE_CTRL", 0x2100},
+    {"AE_TARGET_MEAN", 0x2101},
+    {"AE_MIN_MEAN", 0x2102},
+    {"CONVERGE_IN_TH", 0x2103},
+    {"CONVERGE_OUT_TH", 0x2104},
+    {"MAX_INTG_H", 0x2105},
+    {"MAX_INTG_L", 0x2106},
+    {"MIN_INTG", 0x2107},
+    {"MAX_AGAIN_FULL", 0x2108},
+    {"MAX_AGAIN_BIN2", 0x2109},
+    {"MIN_AGAIN", 0x210A},
+    {"MAX_DGAIN", 0x210B},
+    {"MIN_DGAIN", 0x210C},
+    {"DAMPING_FACTOR", 0x210D},
+    {"FS_CTRL", 0x210E},
+    {"FS_60HZ_H", 0x210F},
+    {"FS_60HZ_L", 0x2110},
+    {"FS_50HZ_H", 0x2111},
+    {"FS_50HZ_L", 0x2112},
+    {"FS_HYST_TH", 0x2113},
+    {"MD_CTRL", 0x2150},
+    {"I2C_CLEAR", 0x2153},
+    {"WMEAN_DIFF_TH_H", 0x2155},
+    {"WMEAN_DIFF_TH_M", 0x2156},
+    {"WMEAN_DIFF_TH_L", 0x2157},
+    {"MD_THH", 0x2158},
+    {"MD_THM1", 0x2159},
+    {"MD_THM2", 0x215A},
+    {"MD_THL", 0x215B},
+    {"STATISTIC_CTRL", 0x2000},
+    {"MD_LROI_X_START_H", 0x2011},
+    {"MD_LROI_X_START_L", 0x2012},
+    {"MD_LROI_Y_START_H", 0x2013},
+    {"MD_LROI_Y_START_L", 0x2014},
+    {"MD_LROI_X_END_H", 0x2015},
+    {"MD_LROI_X_END_L", 0x2016},
+    {"MD_LROI_Y_END_H", 0x2017},
+    {"MD_LROI_Y_END_L", 0x2018},
+    {"MD_INTERRUPT", 0x2160},
+    {"QVGA_WIN_EN", 0x3010},
+    {"SIX_BIT_MODE_EN", 0x3011},
+    {"PMU_AUTOSLEEP_FRAMECNT", 0x3020},
+    {"ADVANCE_VSYNC", 0x3022},
+    {"ADVANCE_HSYNC", 0x3023},
+    {"EARLY_GAIN", 0x3035},
+    {"BIT_CONTROL", 0x3059},
+    {"OSC_CLK_DIV", 0x3060},
+    {"ANA_Register_11", 0x3061},
+    {"IO_DRIVE_STR", 0x3062},
+    {"IO_DRIVE_STR2", 0x3063},
+    {"ANA_Register_14", 0x3064},
+    {"OUTPUT_PIN_STATUS_CONTROL", 0x3065},
+    {"ANA_Register_17", 0x3067},
+    {"PCLK_POLARITY", 0x3068}
+  };
+  #endif
 /**
  * @}
  */
@@ -294,9 +389,11 @@ static const uint16_t himax_qqvga_regs[][2] = {
     {0x0000,                0x00},  // EOF
 };
 
-HM01B0::HM01B0(arduino::MbedI2C &i2c) : 
+HM01B0::HM01B0(WIRECLASS &i2c) : 
     _i2c(&i2c),
+#if defined(ARDUINO_ARCH_MBED)
     md_irq(PC_15),
+#endif
     _md_callback(NULL)
 {
 }
@@ -325,7 +422,7 @@ int HM01B0::init()
 
     regWrite(HM01B0_I2C_ADDR, MODE_SELECT, HIMAX_Streaming, true);
 
-    HAL_Delay(200);
+    DELAYMS(200);
 
     return 0;
 }
@@ -343,12 +440,18 @@ int HM01B0::reset()
 
 int HM01B0::setVerticalFlip(bool flip_enable)
 {
-  return -1;
+    uint8_t reg = regRead(HM01B0_I2C_ADDR, IMG_ORIENTATION, true);
+    if (flip_enable) reg |= 2;
+    else reg &= 0xFD;
+    return regWrite(HM01B0_I2C_ADDR, IMG_ORIENTATION, reg, true);
 }
 
 int HM01B0::setHorizontalMirror(bool mirror_enable)
 {
-  return -1;
+    uint8_t reg = regRead(HM01B0_I2C_ADDR, IMG_ORIENTATION, true);
+    if (mirror_enable) reg |= 1;
+    else reg &= 0xFE;
+    return regWrite(HM01B0_I2C_ADDR, IMG_ORIENTATION, reg, true);
 }
 
 uint8_t HM01B0::getPixelReadingCycle() 
@@ -359,6 +462,7 @@ uint8_t HM01B0::getPixelReadingCycle()
 int HM01B0::setResolution(int32_t resolution)
 {
     setResolutionWithZoom(resolution, resolution, 0, 0);
+    return 0;
 }
 
 int HM01B0::setResolutionWithZoom(int32_t resolution, int32_t zoom_resolution, uint32_t zoom_x, uint32_t zoom_y)
@@ -442,7 +546,7 @@ int HM01B0::setTestPattern(bool enable, bool walking)
     regWrite(HM01B0_I2C_ADDR, 0x0601,  reg, true);
     regWrite(HM01B0_I2C_ADDR, 0x0104,  1, true); //group hold
 
-    HAL_Delay(100);
+    DELAYMS(100);
 
     return 0;
 }
@@ -476,6 +580,7 @@ int HM01B0::setMotionDetectionWindow(uint32_t x, uint32_t y, uint32_t w, uint32_
 
 int HM01B0::enableMotionDetection(md_callback_t callback)
 {
+#if defined(ARDUINO_ARCH_MBED)
   md_irq.rise(0);
   _md_callback = callback;
   md_irq.rise(mbed::Callback<void()>(this, &HM01B0::irqHandler));
@@ -484,6 +589,10 @@ int HM01B0::enableMotionDetection(md_callback_t callback)
   int ret = clearMotionDetection();
   ret |= regWrite(HM01B0_I2C_ADDR, MD_CTRL, 1, true);
   return ret;
+#else
+// #ifdef LATER
+  return 0;  
+#endif  
 }
 
 int HM01B0::disableMotionDetection()
@@ -517,13 +626,29 @@ int HM01B0::clearMotionDetection()
 
 uint8_t HM01B0::printRegs()
 {
-    for (uint32_t i=0; himax_default_regs[i][0]; i++) {
-        printf("0x%04X: 0x%02X  0x%02X \n",
-                himax_default_regs[i][0],
-                himax_default_regs[i][1],
-                regRead(HM01B0_I2C_ADDR, himax_default_regs[i][0], true));
+    if (_debug == nullptr) return -1;
+    
+    _debug->println("\n*** Camera Registers ***");
+
+    // Now lets print out like we have on Teeny version
+    printf("\n*** Camera Registers ***\n");
+    for (uint16_t ii = 0; ii < (sizeof(ov_reg_name_table)/sizeof(ov_reg_name_table[0])); ii++) {
+
+        uint8_t reg_value = regRead(HM01B0_I2C_ADDR, ov_reg_name_table[ii].reg, true);
+        
+        _debug->print("(0x"); 
+        _debug->print(ii, HEX);
+        _debug->print("): (0x"); 
+        _debug->print(reg_value, HEX);
+        _debug->print(" - ");
+        _debug->print(reg_value, DEC);
+        _debug->print(")\t// ");
+        _debug->println(ov_reg_name_table[ii].reg_name);
     }
+
+
     return 0;
+
 }
 
 int HM01B0::regWrite(uint8_t dev_addr, uint16_t reg_addr, uint8_t reg_data, bool wide_addr)

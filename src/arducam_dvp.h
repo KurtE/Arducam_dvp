@@ -298,6 +298,14 @@ class ImageSensor {
         virtual void debug(Stream &stream) = 0;
 
         /**
+         * @brief prints the camera registers out to the debug stream.
+         * You can use this function to dump out the current register settings to the debug stream.
+         * @param stream Stream to output the debug information
+         * @return uint8_t 0 on success, non-zero on failure
+         */ 
+        virtual uint8_t printRegs() = 0;
+
+        /**
          * @brief Set the sensor in standby mode.
          * @note This has no effect on cameras that do not support standby mode.
          * @note None of the currently supported camera drivers implement this function.
@@ -387,6 +395,15 @@ private:
 };
 
 
+#if defined(ARDUINO_ARCH_MBED)
+#define WIRECLASS arduino::MbedI2C
+#define DELAYMS HAL_Delay
+#else
+#define WIRECLASS TwoWire
+#define DELAYMS delay
+#endif
+
+
 /**
  * @class Camera
  * @brief The main class for controlling a camera using the provided ImageSensor.
@@ -401,7 +418,7 @@ class Camera {
         int reset();             /// Reset the camera
         ScanResults<uint8_t> i2cScan(); /// Perform an I2C scan
         Stream *_debug;          /// Pointer to the debug stream
-        arduino::MbedI2C *_i2c;  /// Pointer to the I2C interface
+        WIRECLASS *_i2c;
         FrameBuffer *_framebuffer; /// Pointer to the frame buffer
         int setResolutionWithZoom(int32_t resolution, int32_t zoom_resolution, int32_t zoom_x, int32_t zoom_y);
 
@@ -638,9 +655,21 @@ class Camera {
          */
         void debug(Stream &stream);
 
+        /**
+         * @brief prints the camera registers out to the debug stream.
+         * You can use this function to dump out the current register settings to the debug stream.
+         * @param stream Stream to output the debug information
+         * @return uint8_t 0 on success, non-zero on failure
+         */ 
+        uint8_t printRegs();
+
 };
 
 #endif // __arducam_dvp_H
 
 /// The I2C bus used to communicate with the camera
+#if defined(ARDUINO_ARCH_MBED)
 extern arduino::MbedI2C CameraWire;
+#else
+#define CameraWire Wire
+#endif

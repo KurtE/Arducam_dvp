@@ -20,20 +20,24 @@
 #define __HIMAX_H
 
 #include "arducam_dvp.h"
+#if defined(ARDUINO_ARCH_MBED)
 #include "drivers/InterruptIn.h"
+#endif
 
 class HM0360: public ImageSensor {
    private:
         Stream *_debug;
-        arduino::MbedI2C *_i2c;
+        WIRECLASS *_i2c;
+#if defined(ARDUINO_ARCH_MBED)
         mbed::InterruptIn md_irq;
+#endif
         md_callback_t _md_callback;
         void irqHandler();
         int regWrite(uint8_t dev_addr, uint16_t reg_addr, uint8_t reg_data, bool wide_addr = false);
         uint8_t regRead(uint8_t dev_addr, uint16_t reg_addr, bool wide_addr = false);
 
    public:
-        HM0360(arduino::MbedI2C &i2c = CameraWire);
+        HM0360(WIRECLASS &i2c = CameraWire);
         int init();
         int reset();
         int getID() { return HM0360_I2C_ADDR; };

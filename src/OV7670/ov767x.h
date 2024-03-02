@@ -30,7 +30,8 @@ class OV7670: public ImageSensor {
    private:
         int setWindow(uint16_t reg, uint16_t x, uint16_t y, uint16_t w, uint16_t h);
         Stream *_debug;
-        arduino::MbedI2C *_i2c;
+        bool _verbose = false;
+        WIRECLASS *_i2c;
         int regWrite(uint8_t dev_addr, uint16_t reg_addr, uint8_t reg_data, bool wide_addr = false);
         uint8_t regRead(uint8_t dev_addr, uint16_t reg_addr, bool wide_addr = false);
         static const uint8_t qqvga_regs[][2];
@@ -38,7 +39,7 @@ class OV7670: public ImageSensor {
         static const uint8_t rgb565_regs[][2];
 
    public:
-        OV7670(arduino::MbedI2C &i2c = CameraWire);
+        OV7670(WIRECLASS &i2c = CameraWire);
         int init();
         int reset();
         int getID() { return 0x21; };
@@ -55,7 +56,9 @@ class OV7670: public ImageSensor {
         int motionDetected() { return 0; };
         int setVerticalFlip(bool flip_enable);
         int setHorizontalMirror(bool mirror_enable);
+        uint8_t printRegs();
         void debug(Stream &stream);
+        bool verboseDebug(bool fVerbose);
 };
 
 class OV7675: public OV7670 {

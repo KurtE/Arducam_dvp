@@ -160,6 +160,154 @@
 #define         AE_CTRL_ENABLE                  0x00
 #define         AE_CTRL_DISABLE                 0x01
 
+#define HM0360_DEBUG
+#ifdef HM0360_DEBUG
+typedef struct {
+  const char *reg_name;
+  uint16_t reg;
+} HIMAX_REG_TO_NAME_t;
+
+static const HIMAX_REG_TO_NAME_t ov_reg_name_table[] =
+{
+    {"MODEL_ID_H", 0x0000},
+    {"MODEL_ID_L", 0x0001},
+    {"SILICON_REV", 0x0002},
+    {"FRAME_COUNT_H", 0x0005},
+    {"FRAME_COUNT_L", 0x0006},
+    {"PIXEL_ORDER", 0x0007},
+    {"MODE_SELECT", 0x0100},
+    {"IMG_ORIENTATION", 0x0101},
+    {"EMBEDDED_LINE_EN", 0x0102},
+    {"SW_RESET", 0x0103},
+    {"COMMAND_UPDATE", 0x0104},
+    {"INTEGRATION_H", 0x0202},
+    {"INTEGRATION_L", 0x0203},
+    {"ANALOG_GAIN", 0x0205},
+    {"DIGITAL_GAIN_H", 0x020E},
+    {"DIGITAL_GAIN_L", 0x020F},
+    {"PLL1_CONFIG", 0x0300},
+    {"PLL2_CONFIG", 0x0301},
+    {"PLL3_CONFIG", 0x0302},
+    {"FRAME_LEN_LINES_H", 0x0340},
+    {"FRAME_LEN_LINES_L", 0x0341},
+    {"LINE_LEN_PCK_H", 0x0342},
+    {"LINE_LEN_PCK_L", 0x0343},
+    {"MONO_MODE", 0x0370},
+    {"MONO_MODE_ISP", 0x0371},
+    {"MONO_MODE_SEL", 0x0372},
+    {"H_SUBSAMPLE", 0x0380},
+    {"V_SUBSAMPLE", 0x0381},
+    {"BINNING_MODE", 0x0382},
+    {"TEST_PATTERN_MODE", 0x0601},
+    {"BLC_TGT", 0x1004},
+    {"BLC2_TGT", 0x1009},
+    {"MONO_CTRL", 0x100A},
+    {"OPFM_CTRL", 0x1014},
+    {"CMPRS_CTRL", 0x102F},
+    {"CMPRS_01", 0x1030},
+    {"CMPRS_02", 0x1031},
+    {"CMPRS_03", 0x1032},
+    {"CMPRS_04", 0x1033},
+    {"CMPRS_05", 0x1034},
+    {"CMPRS_06", 0x1035},
+    {"CMPRS_07", 0x1036},
+    {"CMPRS_08", 0x1037},
+    {"CMPRS_09", 0x1038},
+    {"CMPRS_10", 0x1039},
+    {"CMPRS_11", 0x103A},
+    {"CMPRS_12", 0x103B},
+    {"CMPRS_13", 0x103C},
+    {"CMPRS_14", 0x103D},
+    {"CMPRS_15", 0x103E},
+    {"CMPRS_16", 0x103F},
+    {"AE_CTRL", 0x2000},
+    {"AE_CTRL1", 0x2001},
+    {"CNT_ORGH_H", 0x2002},
+    {"CNT_ORGH_L", 0x2003},
+    {"CNT_ORGV_H", 0x2004},
+    {"CNT_ORGV_L", 0x2005},
+    {"CNT_STH_H", 0x2006},
+    {"CNT_STH_L", 0x2007},
+    {"CNT_STV_H", 0x2008},
+    {"CNT_STV_L", 0x2009},
+    {"CTRL_PG_SKIPCNT", 0x200A},
+    {"BV_WIN_WEIGHT_EN", 0x200D},
+    {"MAX_INTG_H", 0x2029},
+    {"MAX_INTG_L", 0x202A},
+    {"MAX_AGAIN", 0x202B},
+    {"MAX_DGAIN_H", 0x202C},
+    {"MAX_DGAIN_L", 0x202D},
+    {"MIN_INTG", 0x202E},
+    {"MIN_AGAIN", 0x202F},
+    {"MIN_DGAIN", 0x2030},
+    {"T_DAMPING", 0x2031},
+    {"N_DAMPING", 0x2032},
+    {"ALC_TH", 0x2033},
+    {"AE_TARGET_MEAN", 0x2034},
+    {"AE_MIN_MEAN", 0x2035},
+    {"AE_TARGET_ZONE", 0x2036},
+    {"CONVERGE_IN_TH", 0x2037},
+    {"CONVERGE_OUT_TH", 0x2038},
+    {"FS_CTRL", 0x203B},
+    {"FS_60HZ_H", 0x203C},
+    {"FS_60HZ_L", 0x203D},
+    {"FS_50HZ_H", 0x203E},
+    {"FS_50HZ_L", 0x203F},
+    {"FRAME_CNT_TH", 0x205B},
+    {"AE_MEAN", 0x205D},
+    {"AE_CONVERGE", 0x2060},
+    {"AE_BLI_TGT", 0x2070},
+    {"PULSE_MODE", 0x2061},
+    {"PULSE_TH_H", 0x2062},
+    {"PULSE_TH_L", 0x2063},
+    {"INT_INDIC", 0x2064},
+    {"INT_CLEAR", 0x2065},
+    {"MD_CTRL", 0x2080},
+    {"ROI_START_END_V", 0x2081},
+    {"ROI_START_END_H", 0x2082},
+    {"MD_TH_MIN", 0x2083},
+    {"MD_TH_STR_L", 0x2084},
+    {"MD_TH_STR_H", 0x2085},
+    {"MD_LIGHT_COEF", 0x2099},
+    {"MD_BLOCK_NUM_TH", 0x209B},
+    {"MD_LATENCY", 0x209C},
+    {"MD_LATENCY_TH", 0x209D},
+    {"MD_CTRL1", 0x209E},
+    {"PMU_CFG_3", 0x3024},
+    {"PMU_CFG_4", 0x3025},
+    {"WIN_MODE", 0x3030},
+    {"VSYNC_FRONT", 0x3094},
+    {"VSYNC_END", 0x3095},
+    {"HSYNC_FRONT_H", 0x3096},
+    {"HSYNC_FRONT_L", 0x3097},
+    {"HSYNC_END_H", 0x3098},
+    {"HSYNC_END_L", 0x3099},
+    {"READ_PU_FRONT", 0x309A},
+    {"READ_PU_End", 0x309B},
+    {"EARLY_INT_EN", 0x309C},
+    {"PCLKO_GATED_EN", 0x309E},
+    {"PCLKO_FRAME_FRONT", 0x309F},
+    {"PCLKO_FRAME_END", 0x30A0},
+    {"PCLKO_LINE_FRONT_H", 0x30A1},
+    {"PCLKO_LINE_FRONT_L", 0x30A2},
+    {"PCLKO_LINE_END_H", 0x30A3},
+    {"PCLKO_LINE_END_L", 0x30A4},
+    {"OUTPUT_EN", 0x30A5},
+    {"FRAME_OUTPUT_EN", 0x30A8},
+    {"MULTI_CAMERA_CONFIG", 0x30A9},
+    {"MULTI_CAMERA_TUNE_H", 0x30AA},
+    {"MULTI_CAMERA_TUNE_L", 0x30AB},
+    {"ANA_REGISTER_03", 0x310E},
+    {"ANA_REGISTER_04", 0x310F},
+    {"ANA_REGISTER_05", 0x3110},
+    {"ANA_REGISTER_06", 0x3111},
+    {"PAD_REGISTER_07", 0x3112},
+    {"PLL_POST_DIV_D", 0x3128},
+};
+
+#endif
+
+
 /**
  * @}
  */
@@ -544,9 +692,11 @@ static const uint16_t himax_qqvga_regs[][2] = {
     {0x0000,                0x00},
 };
 
-HM0360::HM0360(arduino::MbedI2C &i2c) : 
+HM0360::HM0360(WIRECLASS &i2c) : 
     _i2c(&i2c),
+#if defined(ARDUINO_ARCH_MBED)
     md_irq(PC_15),
+#endif
     _md_callback(NULL)
 {
 }
@@ -588,17 +738,23 @@ int HM0360::reset()
 
 int HM0360::setVerticalFlip(bool flip_enable)
 {
-  return -1;
+    uint8_t reg = regRead(HM0360_I2C_ADDR, IMG_ORIENTATION, true);
+    if (flip_enable) reg |= 2;
+    else reg &= 0xFD;
+    return regWrite(HM0360_I2C_ADDR, IMG_ORIENTATION, reg, true);
 }
 
 int HM0360::setHorizontalMirror(bool mirror_enable)
 {
-  return -1;
+    uint8_t reg = regRead(HM0360_I2C_ADDR, IMG_ORIENTATION, true);
+    if (mirror_enable) reg |= 1;
+    else reg &= 0xFE;
+    return regWrite(HM0360_I2C_ADDR, IMG_ORIENTATION, reg, true);
 }
 
 int HM0360::setResolution(int32_t resolution)
 {
-    setResolutionWithZoom(resolution, resolution, 0, 0);
+    return setResolutionWithZoom(resolution, resolution, 0, 0);
 }
 
 int HM0360::setResolutionWithZoom(int32_t resolution, int32_t zoom_resolution, uint32_t zoom_x, uint32_t zoom_y)
@@ -720,11 +876,13 @@ int HM0360::setMotionDetectionWindow(uint32_t x, uint32_t y, uint32_t w, uint32_
 
 int HM0360::enableMotionDetection(md_callback_t callback)
 {
+#if defined(ARDUINO_ARCH_MBED)
     md_irq.rise(0);
     _md_callback = callback;
     md_irq.rise(mbed::Callback<void()>(this, &HM0360::irqHandler));
     md_irq.enable_irq();
-
+#else
+#endif    
     int ret = clearMotionDetection();
     uint8_t md_ctrl = regRead(HM0360_I2C_ADDR, MD_CTRL, true);
     ret |= regWrite(HM0360_I2C_ADDR, MD_CTRL, (md_ctrl & 0xFE) | 1, true);
@@ -761,12 +919,27 @@ int HM0360::clearMotionDetection()
 
 uint8_t HM0360::printRegs()
 {
-    for (uint32_t i=0; himax_default_regs[i][0]; i++) {
-        printf("0x%04X: 0x%02X  0x%02X \n",
-                himax_default_regs[i][0],
-                himax_default_regs[i][1],
-                regRead(HM0360_I2C_ADDR, himax_default_regs[i][0], true));
+    if (_debug == nullptr) return -1;
+    
+    _debug->println("\n*** Camera Registers ***");
+
+    // Now lets print out like we have on Teeny version
+    printf("\n*** Camera Registers ***\n");
+    for (uint16_t ii = 0; ii < (sizeof(ov_reg_name_table)/sizeof(ov_reg_name_table[0])); ii++) {
+
+        uint8_t reg_value = regRead(HM0360_I2C_ADDR, ov_reg_name_table[ii].reg, true);
+        
+        _debug->print("(0x"); 
+        _debug->print(ii, HEX);
+        _debug->print("): (0x"); 
+        _debug->print(reg_value, HEX);
+        _debug->print(" - ");
+        _debug->print(reg_value, DEC);
+        _debug->print(")\t// ");
+        _debug->println(ov_reg_name_table[ii].reg_name);
     }
+
+
     return 0;
 }
 
